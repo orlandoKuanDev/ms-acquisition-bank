@@ -16,7 +16,9 @@ public class RouterConfig {
     public RouterFunction<ServerResponse> rutas(AcquisitionHandler handler){
         return route(GET("/acquisition"), handler::findAll)
                 .andRoute(GET("/acquisition/{id}"), handler::findById)
-                .andRoute(GET("/acquisition/product/name/{productName}"), handler::findByProductName)
-                .andRoute(GET("/acquisition/customer/{identityNumber}"), handler::findByIdentityNumber);
+                .andRoute(GET("/acquisition/product/{productName}"), handler::findByProductName)
+                .andRoute(GET("/acquisition/productId/{productId}"), handler::findByProductId)
+                .andRoute(GET("/acquisition/customer/{identityNumber}"), handler::findByIdentityNumber)
+                .andRoute(POST("/acquisition/create"), handler::createAcquisitionTest2);
     }
 }

@@ -10,10 +10,9 @@ import org.springframework.data.mongodb.core.mapping.Field;
 //@Document(collection = "product")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Data
-@Builder
 public class Product {
     //@Id
-    //private String id;
+    private String id;
 
     @Field(name = "productName")
     private String productName;

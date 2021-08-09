@@ -43,6 +43,22 @@ public class ProductService {
                 })
                 .bodyToMono(Product.class);
     }
+    public Mono<Product> findByProductId(String productId) {
+        return webClientBuilder
+                .baseUrl("http://SERVICE-PRODUCT/product")
+                .build()
+                .get()
+                .uri("/find/{productId}", Collections.singletonMap("productId", productId))
+                .accept(APPLICATION_JSON)
+                .retrieve()
+                .onStatus(HttpStatus::isError, response -> {
+                    logTraceResponse(logger, response);
+                    return Mono.error(new ArgumentWebClientNotValid(
+                            String.format("THE PRODUCT WITH ID DOES NOT EXIST IN MICRO SERVICE PRODUCT-> %s", productId)
+                    ));
+                })
+                .bodyToMono(Product.class);
+    }
 
     public static void logTraceResponse(Logger log, ClientResponse response) {
         if (log.isTraceEnabled()) {

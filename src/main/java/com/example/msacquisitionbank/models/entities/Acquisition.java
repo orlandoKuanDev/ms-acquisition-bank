@@ -7,7 +7,10 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
+import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotNull;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Document(collection = "acquisition")
@@ -19,8 +22,14 @@ public class Acquisition {
     @Field(name = "product")
     private Product product;
 
-    @Field(name = "customer")
-    private Customer customer;
+    @Field(name = "customerOwner")
+    private List<Customer> customerHolder;
+
+    @Field(name = "authorizedSigner")
+    private List<Customer> customerAuthorizedSigner;
+
+    @Field(name = "initial")
+    private double initial;
 
     @Field(name = "cardNumber")
     private String cardNumber;
