@@ -1,6 +1,7 @@
 package com.example.msacquisitionbank.handler;
 
 import com.example.msacquisitionbank.models.entities.Acquisition;
+import com.example.msacquisitionbank.models.entities.Bill;
 import com.example.msacquisitionbank.models.entities.Customer;
 import com.example.msacquisitionbank.models.entities.Product;
 import com.example.msacquisitionbank.services.BillService;
@@ -94,44 +95,53 @@ public class AcquisitionHandler {
                                     .stream().filter(ce -> ce.getCustomerType().equals("ENTERPRISE")).count();
                             long quantityPersonalHolder = acquisition3.getCustomerHolder()
                                     .stream().filter(ce -> ce.getCustomerType().equals("PERSONAL")).count();
+                            log.info("QUANTITY_2{}", quantityHolder>1);
+                            log.info("QUANTITY_0 {}", quantityHolder==0);
+                            log.info("QUANTITY_1 {}", quantityHolder==1);
                             boolean isEnterprise=false;
                             boolean isPersonal=false;
-                            if (quantityHolder > 1){
+                            if(quantityHolder>1) {
                                 isPersonal = quantityPersonalHolder == quantityHolder;
                                 if(isPersonal) {
-                                    return Mono.just(ServerResponse.ok()
-                                            .contentType(MediaType.APPLICATION_JSON)
-                                            .bodyValue("There should only be a maximum of 1 holder for personal clients."));
+                                    return Mono.error(new RuntimeException("There should only be a maximum of 1 holder for personal clients"));
                                 }
+                            }else if(quantityHolder==0) {
+                                return Mono.error(new RuntimeException("There most be at least one holder"));
+                            }else if(quantityHolder==1) {
+                                isEnterprise = quantityEnterpriseHolder==quantityHolder&&quantityPersonalHolder==0;
+                                isPersonal = quantityPersonalHolder==quantityHolder&&quantityEnterpriseHolder==0;
                             }
                             if (isPersonal){
-                                acquisitionService
+                                return acquisitionService
                                         .findAll()
                                         .collectList()
                                         .flatMap(acquisitionsPersonal -> {
                                             int i = 0;
-                                            log.info("QUANTITY PRODUCT {}", i);
                                             for (Acquisition acquisition4 : acquisitionsPersonal){
                                                 for (Customer customer : acquisition4.getCustomerHolder()){
                                                     for (Customer customer1 : acquisition3.getCustomerHolder()){
+                                                        log.info("COMPARE 1 {}", customer.getCustomerIdentityNumber().equals(customer1.getCustomerIdentityNumber()));
+                                                        log.info("COMPARE 1 {}", acquisition4.getProduct().getProductName().equals(acquisition3.getProduct().getProductName()));
                                                         if (customer.getCustomerIdentityNumber().equals(customer1.getCustomerIdentityNumber())
-                                                                && acquisition4.getProduct().getProductName().equals(acquisition4.getProduct().getProductName())
+                                                                && acquisition4.getProduct().getProductName().equals(acquisition3.getProduct().getProductName())
                                                         ) {
                                                             i++;
                                                         }
                                                     }
                                                 }
                                             }
-                                            log.info("QUANTITY PRODUCT after {}", i);
                                             if (i > 0){
-                                                return Mono.just(ServerResponse.ok()
-                                                        .contentType(MediaType.APPLICATION_JSON)
-                                                        .bodyValue("The customer already has the product: " + acquisition3.getProduct().getProductName()));
+                                                return Mono.empty();
                                             }
                                             return Mono.just(acquisition3);
-                                        });
+                                        }).switchIfEmpty(Mono.error(new RuntimeException("The customer already has the product")));
                             }
                             return Mono.just(acquisition3);
+                        }).flatMap(acquisitionBill -> {
+                            Bill bill = new Bill();
+                            bill.setAccountNumber(generateRandom());
+                            bill.setBalance(acquisitionBill.getInitial());
+                            return billService.createBill(bill);
                         })
                         .flatMap(acquisitionResponse -> acquisitionService.create(acquisitionInit)))
                 .flatMap(response -> ServerResponse.ok()
