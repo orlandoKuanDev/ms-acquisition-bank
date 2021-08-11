@@ -17,13 +17,12 @@ import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 @Component
 @Slf4j(topic = "ACQUISITION_HANDLER")
 public class AcquisitionHandler {
+
     private final IAcquisitionService acquisitionService;
     private final BillService billService;
     private final ProductService productService;
@@ -95,33 +94,33 @@ public class AcquisitionHandler {
                                     .stream().filter(ce -> ce.getCustomerType().equals("ENTERPRISE")).count();
                             long quantityPersonalHolder = acquisition3.getCustomerHolder()
                                     .stream().filter(ce -> ce.getCustomerType().equals("PERSONAL")).count();
+                            boolean isEnterprise=false;
+                            boolean isPersonal=false;
                             log.info("QUANTITY_2{}", quantityHolder>1);
                             log.info("QUANTITY_0 {}", quantityHolder==0);
                             log.info("QUANTITY_1 {}", quantityHolder==1);
-                            boolean isEnterprise=false;
-                            boolean isPersonal=false;
-                            if(quantityHolder>1) {
-                                isPersonal = quantityPersonalHolder == quantityHolder;
-                                if(isPersonal) {
-                                    return Mono.error(new RuntimeException("There should only be a maximum of 1 holder for personal clients"));
+                            //StringBuilder message = new StringBuilder();
+                            isEnterprise = quantityEnterpriseHolder==quantityHolder&&quantityPersonalHolder==0;
+                            isPersonal = quantityPersonalHolder==quantityHolder&&quantityEnterpriseHolder==0;
+                            log.info("CLIENT_TYPE {}", isEnterprise);
+                            log.info("CLIENT_TYPE {}", isPersonal);
+                            if (isEnterprise){
+                                if (acquisition3.getProduct().getProductName().equals("PLAZO FIJO")
+                                || acquisition3.getProduct().getProductName().equals("AHORRO")){
+                                    return Mono.error(new RuntimeException(String.format("The business customer cannot have account product of type : %s", acquisition3.getProduct().getProductName())));
                                 }
-                            }else if(quantityHolder==0) {
-                                return Mono.error(new RuntimeException("There most be at least one holder"));
-                            }else if(quantityHolder==1) {
-                                isEnterprise = quantityEnterpriseHolder==quantityHolder&&quantityPersonalHolder==0;
-                                isPersonal = quantityPersonalHolder==quantityHolder&&quantityEnterpriseHolder==0;
-                            }
-                            if (isPersonal){
+                            }else{
                                 return acquisitionService
                                         .findAll()
                                         .collectList()
                                         .flatMap(acquisitionsPersonal -> {
+                                            log.info("QUANTITY_3{}", acquisition3.getCustomerHolder().size());
                                             int i = 0;
                                             for (Acquisition acquisition4 : acquisitionsPersonal){
                                                 for (Customer customer : acquisition4.getCustomerHolder()){
                                                     for (Customer customer1 : acquisition3.getCustomerHolder()){
-                                                        log.info("COMPARE 1 {}", customer.getCustomerIdentityNumber().equals(customer1.getCustomerIdentityNumber()));
-                                                        log.info("COMPARE 1 {}", acquisition4.getProduct().getProductName().equals(acquisition3.getProduct().getProductName()));
+                                                        log.info("CLIENT_TYPE : {}", customer1.getCustomerType());
+                                                        log.info("CLIENT_TYPE : {}", Objects.equals(customer1.getCustomerType(), "ENTERPRISE"));
                                                         if (customer.getCustomerIdentityNumber().equals(customer1.getCustomerIdentityNumber())
                                                                 && acquisition4.getProduct().getProductName().equals(acquisition3.getProduct().getProductName())
                                                         ) {
@@ -134,7 +133,7 @@ public class AcquisitionHandler {
                                                 return Mono.empty();
                                             }
                                             return Mono.just(acquisition3);
-                                        }).switchIfEmpty(Mono.error(new RuntimeException("The customer already has the product")));
+                                        }).switchIfEmpty(Mono.error(new RuntimeException(String.format("The client type personal has the %s account product", acquisition3.getProduct().getProductName()))));
                             }
                             return Mono.just(acquisition3);
                         }).flatMap(acquisitionBill -> {
@@ -148,6 +147,7 @@ public class AcquisitionHandler {
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(response));
     }
+
 
     public static String generateRandom() {
         Random random = new Random();
