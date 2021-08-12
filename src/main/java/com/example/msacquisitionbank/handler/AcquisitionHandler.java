@@ -139,6 +139,7 @@ public class AcquisitionHandler {
                         }).flatMap(acquisitionBill -> {
                             Bill bill = new Bill();
                             bill.setAccountNumber(generateRandom());
+                            bill.setAcquisition(acquisitionBill);
                             bill.setBalance(acquisitionBill.getInitial());
                             return billService.createBill(bill);
                         })
