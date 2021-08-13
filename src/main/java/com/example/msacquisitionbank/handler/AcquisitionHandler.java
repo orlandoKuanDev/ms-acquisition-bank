@@ -155,10 +155,15 @@ public class AcquisitionHandler {
 
     public Mono<ServerResponse> updateAcquisition(ServerRequest request){
         Mono<Acquisition> acquisition = request.bodyToMono(Acquisition.class);
-        return acquisition.flatMap(acquisitionService::update)
+        String cardNumber = request.pathVariable("cardNumber");
+        Mono<Acquisition> currentAcquisition = acquisitionService.findByCardNumber(cardNumber);
+        return currentAcquisition.zipWith(acquisition, (current, newAcq) -> {
+            current.setProduct(newAcq.getProduct());
+            return current;
+        }).flatMap(acquisitionService::update)
                 .flatMap(acquisitionResponse -> ServerResponse.created(URI.create("/api/acquisition/".concat(acquisitionResponse.getId())))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .bodyValue(acquisitionResponse));
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(acquisitionResponse));
     }
 
     public static String generateRandom() {

@@ -20,6 +20,6 @@ public class RouterConfig {
                 .andRoute(GET("/acquisition/productId/{productId}"), handler::findByProductId)
                 .andRoute(GET("/acquisition/customer/{identityNumber}"), handler::findByIdentityNumber)
                 .andRoute(POST("/acquisition/create"), handler::createAcquisitionTest2)
-                .andRoute(POST("/acquisition/update"), handler::updateAcquisition);
+                .andRoute(POST("/acquisition/update/{cardNumber}"), handler::updateAcquisition);
     }
 }
