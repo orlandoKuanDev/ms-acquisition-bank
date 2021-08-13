@@ -17,6 +17,7 @@ import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.net.URI;
 import java.util.*;
 
 @Component
@@ -152,6 +153,13 @@ public class AcquisitionHandler {
                 .bodyValue(response));
     }
 
+    public Mono<ServerResponse> updateAcquisition(ServerRequest request){
+        Mono<Acquisition> acquisition = request.bodyToMono(Acquisition.class);
+        return acquisition.flatMap(acquisitionService::update)
+                .flatMap(acquisitionResponse -> ServerResponse.created(URI.create("/api/acquisition/".concat(acquisitionResponse.getId())))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .bodyValue(acquisitionResponse));
+    }
 
     public static String generateRandom() {
         Random random = new Random();
