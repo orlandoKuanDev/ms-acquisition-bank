@@ -137,12 +137,15 @@ public class AcquisitionHandler {
                             }
                             return Mono.just(acquisition3);
                         }).flatMap(acquisitionBill -> {
+                            if (acquisitionBill.getInitial() < 0){
+                                return Mono.empty();
+                            }
                             Bill bill = new Bill();
                             bill.setAccountNumber(generateRandom());
                             bill.setAcquisition(acquisitionBill);
                             bill.setBalance(acquisitionBill.getInitial());
                             return billService.createBill(bill);
-                        })
+                        }).switchIfEmpty(Mono.error(new RuntimeException("the initial amount must be greater than zero")))
                         .flatMap(acquisitionResponse -> acquisitionService.create(acquisitionInit)))
                 .flatMap(response -> ServerResponse.ok()
                 .contentType(MediaType.APPLICATION_JSON)
