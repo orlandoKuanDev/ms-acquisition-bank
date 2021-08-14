@@ -158,6 +158,7 @@ public class AcquisitionHandler {
         String cardNumber = request.pathVariable("cardNumber");
         Mono<Acquisition> currentAcquisition = acquisitionService.findByCardNumber(cardNumber);
         return currentAcquisition.zipWith(acquisition, (current, newAcq) -> {
+            log.info("NEW_ACQUISITION_DATA: {}", newAcq);
             current.setProduct(newAcq.getProduct());
             return current;
         }).flatMap(acquisitionService::update)

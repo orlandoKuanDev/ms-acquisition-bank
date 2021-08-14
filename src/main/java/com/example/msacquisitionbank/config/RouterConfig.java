@@ -6,8 +6,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.ServerResponse;
 
-import static org.springframework.web.reactive.function.server.RequestPredicates.GET;
-import static org.springframework.web.reactive.function.server.RequestPredicates.POST;
+import static org.springframework.web.reactive.function.server.RequestPredicates.*;
 import static org.springframework.web.reactive.function.server.RouterFunctions.route;
 
 @Configuration
@@ -20,6 +19,6 @@ public class RouterConfig {
                 .andRoute(GET("/acquisition/productId/{productId}"), handler::findByProductId)
                 .andRoute(GET("/acquisition/customer/{identityNumber}"), handler::findByIdentityNumber)
                 .andRoute(POST("/acquisition/create"), handler::createAcquisitionTest2)
-                .andRoute(POST("/acquisition/update/{cardNumber}"), handler::updateAcquisition);
+                .andRoute(PUT("/acquisition/update/{cardNumber}"), handler::updateAcquisition);
     }
 }
