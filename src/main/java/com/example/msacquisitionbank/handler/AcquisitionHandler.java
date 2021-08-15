@@ -8,6 +8,8 @@ import com.example.msacquisitionbank.services.BillService;
 import com.example.msacquisitionbank.services.CustomerService;
 import com.example.msacquisitionbank.services.IAcquisitionService;
 import com.example.msacquisitionbank.services.ProductService;
+import com.example.msacquisitionbank.utils.AccountNumberGenerator;
+import com.example.msacquisitionbank.utils.CreditCardNumberGenerator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -49,6 +51,14 @@ public class AcquisitionHandler {
                 .switchIfEmpty(ServerResponse.notFound().build());
     }
 
+    public Mono<ServerResponse> findByCardNumber(ServerRequest request){
+        String cardNumber = request.pathVariable("cardNumber");
+        return acquisitionService.findByCardNumber(cardNumber).flatMap(acquisition -> ServerResponse.ok()
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .bodyValue(acquisition))
+                .switchIfEmpty(ServerResponse.notFound().build());
+    }
+
     public Mono<ServerResponse> findByProductName(ServerRequest request){
         String productName = request.pathVariable("productName");
         return productService.findByProductName(productName).flatMap(p -> ServerResponse.ok()
@@ -83,9 +93,10 @@ public class AcquisitionHandler {
                         }).flatMap(acquisition2 -> Flux.fromIterable(acquisition2.getCustomerHolder())
                         .flatMap(customer -> customerService.findByIdentityNumber(customer.getCustomerIdentityNumber()))
                         .collectList()).flatMap(customers -> {
+                            CreditCardNumberGenerator creditCardNumberGenerator = new CreditCardNumberGenerator();
                             acquisitionInit.setCustomerHolder(customers);
                             acquisitionInit.setInitial(acquisition1.getInitial());
-                            acquisitionInit.setCardNumber(acquisition1.getCardNumber());
+                            acquisitionInit.setCardNumber(creditCardNumberGenerator.generate("4551", 17));
                             acquisitionInit.setCustomerAuthorizedSigner(new ArrayList<>());
                             return Mono.just(acquisitionInit);
                         })
@@ -142,7 +153,8 @@ public class AcquisitionHandler {
                                 return Mono.empty();
                             }
                             Bill bill = new Bill();
-                            bill.setAccountNumber(generateRandom());
+                            AccountNumberGenerator accountNumberGenerator = new AccountNumberGenerator();
+                            bill.setAccountNumber(accountNumberGenerator.generate(15));
                             bill.setAcquisition(acquisitionBill);
                             bill.setBalance(acquisitionBill.getInitial());
                             return billService.createBill(bill);
@@ -155,18 +167,15 @@ public class AcquisitionHandler {
 
     public Mono<ServerResponse> updateAcquisition(ServerRequest request){
         Mono<Acquisition> acquisition = request.bodyToMono(Acquisition.class);
-        String cardNumber = request.pathVariable("cardNumber");
-        Mono<Acquisition> currentAcquisition = acquisitionService.findByCardNumber(cardNumber);
-        return currentAcquisition.zipWith(acquisition, (current, newAcq) -> {
-            log.info("NEW_ACQUISITION_DATA: {}", newAcq);
-            current.setProduct(newAcq.getProduct());
-            return current;
-        }).flatMap(acquisitionService::update)
-                .flatMap(acquisitionResponse -> ServerResponse.created(URI.create("/api/acquisition/".concat(acquisitionResponse.getId())))
+        return acquisition.flatMap(acquisitionEdit -> acquisitionService.findByCardNumber(acquisitionEdit.getCardNumber()).flatMap(currentAcquisition -> {
+            currentAcquisition.setProduct(acquisitionEdit.getProduct());
+            return acquisitionService.update(currentAcquisition);
+        })).flatMap(acquisitionResponse -> ServerResponse.created(URI.create("/api/acquisition/".concat(acquisitionResponse.getId())))
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(acquisitionResponse));
     }
-
+    //191-0111111-0-33
+    //193-1853946-0-25
     public static String generateRandom() {
         Random random = new Random();
         StringBuilder sb = new StringBuilder();
