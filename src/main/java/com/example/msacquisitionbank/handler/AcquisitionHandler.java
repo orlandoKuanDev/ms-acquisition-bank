@@ -98,6 +98,7 @@ public class AcquisitionHandler {
                 for (Acquisition acquisition : acquisitions){
                     average += acquisition.getBill().getBalance();
                     i++;
+
                 }
                 averageBalanceDTO.setAverage(average / i);
                 return Mono.just(averageBalanceDTO);
@@ -196,6 +197,7 @@ public class AcquisitionHandler {
         Mono<Acquisition> acquisition = request.bodyToMono(Acquisition.class);
         return acquisition.flatMap(acquisitionEdit -> acquisitionService.findByCardNumber(acquisitionEdit.getCardNumber()).flatMap(currentAcquisition -> {
             currentAcquisition.setProduct(acquisitionEdit.getProduct());
+            currentAcquisition.setBill(acquisitionEdit.getBill());
             return acquisitionService.update(currentAcquisition);
         })).flatMap(acquisitionResponse -> ServerResponse.created(URI.create("/api/acquisition/".concat(acquisitionResponse.getId())))
                 .contentType(MediaType.APPLICATION_JSON)
