@@ -98,9 +98,6 @@ public class AcquisitionHandler {
                 for (Acquisition acquisition : acquisitions){
                     average += acquisition.getBill().getBalance();
                     i++;
-                 /*   billService.findByCardNumber(acquisition.getCardNumber()).flatMap(bill -> {
-                       return bills.add(bill);
-                    });*/
                 }
                 averageBalanceDTO.setAverage(average / i);
                 return Mono.just(averageBalanceDTO);
@@ -203,16 +200,5 @@ public class AcquisitionHandler {
         })).flatMap(acquisitionResponse -> ServerResponse.created(URI.create("/api/acquisition/".concat(acquisitionResponse.getId())))
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(acquisitionResponse));
-    }
-    //191-0111111-0-33
-    //193-1853946-0-25
-    public static String generateRandom() {
-        Random random = new Random();
-        StringBuilder sb = new StringBuilder();
-        sb.append(random.nextInt(9) + 1);
-        for (int i = 0; i < 11; i++) {
-            sb.append(random.nextInt(10));
-        }
-        return sb.toString();
     }
 }
