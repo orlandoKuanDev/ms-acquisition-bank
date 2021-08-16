@@ -1,5 +1,6 @@
 package com.example.msacquisitionbank.handler;
 
+import com.example.msacquisitionbank.models.dto.AverageBalanceDTO;
 import com.example.msacquisitionbank.models.entities.Acquisition;
 import com.example.msacquisitionbank.models.entities.Bill;
 import com.example.msacquisitionbank.models.entities.Customer;
@@ -82,6 +83,32 @@ public class AcquisitionHandler {
                         .bodyValue(p))
                 .switchIfEmpty(Mono.error(new RuntimeException("THE PRODUCT DOES NOT EXIST")));
     }
+    public Mono<ServerResponse> findAllByCustomer(ServerRequest request){
+        String identityNumber = request.pathVariable("identityNumber");
+        AverageBalanceDTO averageBalanceDTO = new AverageBalanceDTO();
+        return customerService.findByIdentityNumber(identityNumber).flatMap(customer -> {
+                    List<Customer> customers = new ArrayList<>();
+                    customers.add(customer);
+            return acquisitionService.findAllByCustomerHolder(customers).collectList().flatMap(acquisitions -> {
+                //Mono<Bill> billMono = billService.findByCardNumber(acquisitions)
+                averageBalanceDTO.setAcquisitions(acquisitions);
+                int i = 0;
+                double average = 0.0;
+                //List<Bill> bills = new ArrayList<>();
+                for (Acquisition acquisition : acquisitions){
+                    average += acquisition.getBill().getBalance();
+                    i++;
+                 /*   billService.findByCardNumber(acquisition.getCardNumber()).flatMap(bill -> {
+                       return bills.add(bill);
+                    });*/
+                }
+                averageBalanceDTO.setAverage(average / i);
+                return Mono.just(averageBalanceDTO);
+            }).flatMap(p -> ServerResponse.ok()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(p));
+        });
+    }
 
     public Mono<ServerResponse> createAcquisitionTest2(ServerRequest request){
         Mono<Acquisition> acquisition = request.bodyToMono(Acquisition.class);
@@ -159,7 +186,10 @@ public class AcquisitionHandler {
                             bill.setBalance(acquisitionBill.getInitial());
                             return billService.createBill(bill);
                         }).switchIfEmpty(Mono.error(new RuntimeException("the initial amount must be greater than zero")))
-                        .flatMap(acquisitionResponse -> acquisitionService.create(acquisitionInit)))
+                        .flatMap(bill -> {
+                            acquisitionInit.setBill(bill);
+                            return acquisitionService.create(acquisitionInit);
+                        }))
                 .flatMap(response -> ServerResponse.ok()
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(response));

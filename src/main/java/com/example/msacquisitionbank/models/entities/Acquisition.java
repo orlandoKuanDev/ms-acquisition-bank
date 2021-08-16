@@ -34,6 +34,9 @@ public class Acquisition {
     @Field(name = "cardNumber")
     private String cardNumber;
 
+    @Field(name = "bill")
+    private Bill bill;
+
     @Field(name = "acquisitionDate")
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime acquisitionDate = LocalDateTime.now();

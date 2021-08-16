@@ -39,7 +39,7 @@ public class CustomerService {
                 .onStatus(HttpStatus::isError, response -> {
                     logTraceResponse(logger, response);
                     return Mono.error(new ArgumentWebClientNotValid(
-                            String.format("THE PRODUCT NAME DONT EXIST IN MICRO SERVICE PRODUCT-> %s", identityNumber)
+                            String.format("THE CUSTOMER DOES WITH IDENTITY NUMBER %s NOT EXIST IN MICRO SERVICE CUSTOMER: ", identityNumber)
                     ));
                 })
                 .bodyToMono(Customer.class);

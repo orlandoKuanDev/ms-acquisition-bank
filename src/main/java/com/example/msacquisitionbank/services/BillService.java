@@ -13,6 +13,10 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
+import java.util.Collections;
+
+import static org.springframework.http.MediaType.APPLICATION_JSON;
+
 @Service
 public class BillService {
     private final WebClient.Builder webClientBuilder;
@@ -22,6 +26,21 @@ public class BillService {
     @Autowired
     public BillService(WebClient.Builder webClientBuilder) {
         this.webClientBuilder = webClientBuilder;
+    }
+
+    public Mono<Bill> findByCardNumber(String cardNumber) {
+        return webClientBuilder
+                .baseUrl("http://SERVICE-BILL/bill")
+                .build()
+                .get()
+                .uri("/acquisition/{cardNumber}", Collections.singletonMap("cardNumber", cardNumber))
+                .accept(APPLICATION_JSON)
+                .retrieve()
+                .onStatus(HttpStatus::isError, response -> {
+                    logTraceResponse(logger, response);
+                    return Mono.error(new RuntimeException(String.format("THE CARD NUMBER DONT EXIST IN MICRO SERVICE BILL-> %s", cardNumber)));
+                })
+                .bodyToMono(Bill.class);
     }
 
     public Mono<Bill> createBill(Bill bill){

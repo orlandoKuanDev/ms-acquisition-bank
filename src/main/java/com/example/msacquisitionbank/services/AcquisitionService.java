@@ -1,6 +1,7 @@
 package com.example.msacquisitionbank.services;
 
 import com.example.msacquisitionbank.models.entities.Acquisition;
+import com.example.msacquisitionbank.models.entities.Customer;
 import com.example.msacquisitionbank.repositories.IAcquisitionRepository;
 import com.example.msacquisitionbank.repositories.IRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,5 +38,10 @@ public class AcquisitionService extends BaseService<Acquisition, String> impleme
     @Override
     public Mono<Acquisition> findByCardNumber(String cardNumber) {
         return acquisitionRepository.findByCardNumber(cardNumber);
+    }
+
+    @Override
+    public Flux<Acquisition> findAllByCustomerHolder(List<Customer> customers) {
+        return acquisitionRepository.findAllByCustomerHolder(customers);
     }
 }
