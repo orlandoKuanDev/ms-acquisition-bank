@@ -21,6 +21,7 @@ public class RouterConfig {
                 .andRoute(GET("/acquisition/all/{identityNumber}"), handler::findAllByCustomer)
                 .andRoute(GET("/acquisition/card/{cardNumber}"), handler::findByCardNumber)
                 .andRoute(POST("/acquisition/create"), handler::createAcquisitionTest2)
-                .andRoute(POST("/acquisition/update"), handler::updateAcquisition);
+                .andRoute(POST("/acquisition/update"), handler::updateAcquisition)
+                .andRoute(PATCH("/acquisition/update/{cardNumber}"), handler::update);
     }
 }

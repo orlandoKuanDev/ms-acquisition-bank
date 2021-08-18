@@ -203,4 +203,17 @@ public class AcquisitionHandler {
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(acquisitionResponse));
     }
+
+    public Mono<ServerResponse> update(ServerRequest request){
+        Mono<Acquisition> acquisition = request.bodyToMono(Acquisition.class);
+        String cardNumber = request.pathVariable("cardNumber");
+        Mono<Acquisition> acquisitionDB = acquisitionService.findByCardNumber(cardNumber);
+        return acquisitionDB.zipWith(acquisition, (db, req) -> {
+            db.setProduct(req.getProduct());
+            db.setDebt(req.getDebt());
+            return db;
+        }).flatMap(acquisitionResponse -> ServerResponse.created(URI.create("/acquisition/".concat(acquisitionResponse.getId())))
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(acquisitionResponse));
+    }
 }
