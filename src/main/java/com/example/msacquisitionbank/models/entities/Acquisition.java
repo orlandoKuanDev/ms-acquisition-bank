@@ -31,6 +31,9 @@ public class Acquisition {
     @Field(name = "initial")
     private double initial;
 
+    @Field(name = "debt")
+    private double debt;
+
     @Field(name = "cardNumber")
     private String cardNumber;
 
