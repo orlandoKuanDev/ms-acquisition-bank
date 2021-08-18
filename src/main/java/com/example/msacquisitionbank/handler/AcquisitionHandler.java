@@ -142,6 +142,7 @@ public class AcquisitionHandler {
                                 || acquisition3.getProduct().getProductName().equals("AHORRO")){
                                     return Mono.error(new RuntimeException(String.format("The business customer cannot have account product of type : %s", acquisition3.getProduct().getProductName())));
                                 }
+                                // si quiere creear una credito personal
                             }else{
                                 return acquisitionService
                                         .findAll()
@@ -159,8 +160,16 @@ public class AcquisitionHandler {
                                                     }
                                                 }
                                             }
+                                           log.info("EXIST_CREDIT_CARD, {}", acquisitionsPersonal.stream().filter(acquisition2 -> Objects.equals(acquisition2.getProduct().getProductName(), "TARJETA DE CREDITO")).count());
                                             if (i > 0){
                                                 return Mono.empty();
+                                            }
+                                            long existCreditCard= acquisitionsPersonal.stream()
+                                                    .filter(acquisition2 -> acquisition2.getCustomerHolder().equals(acquisition3.getCustomerHolder()))
+                                                    .filter(acquisition2 -> Objects.equals(acquisition2.getProduct().getProductName(), "TARJETA DE CREDITO")).count();
+                                            if (existCreditCard == 0 && (acquisition3.getProduct().getProductName().equals("CUENTA AHORRO VIP")
+                                                        || acquisition3.getProduct().getProductName().equals("CUENTA CORRIENTE PYME"))){
+                                                    return Mono.error(new RuntimeException("To request this product the customer must have a credit card"));
                                             }
                                             return Mono.just(acquisition3);
                                         }).switchIfEmpty(Mono.error(new RuntimeException(String.format("The client type personal has the %s account product", acquisition3.getProduct().getProductName()))));
