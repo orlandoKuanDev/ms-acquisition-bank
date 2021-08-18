@@ -133,10 +133,6 @@ public class AcquisitionHandler {
                                     .stream().filter(ce -> ce.getCustomerType().equals("PERSONAL")).count();
                             boolean isEnterprise=false;
                             boolean isPersonal=false;
-                            log.info("QUANTITY_2{}", quantityHolder>1);
-                            log.info("QUANTITY_0 {}", quantityHolder==0);
-                            log.info("QUANTITY_1 {}", quantityHolder==1);
-                            //StringBuilder message = new StringBuilder();
                             isEnterprise = quantityEnterpriseHolder==quantityHolder&&quantityPersonalHolder==0;
                             isPersonal = quantityPersonalHolder==quantityHolder&&quantityEnterpriseHolder==0;
                             log.info("CLIENT_TYPE {}", isEnterprise);
@@ -151,13 +147,10 @@ public class AcquisitionHandler {
                                         .findAll()
                                         .collectList()
                                         .flatMap(acquisitionsPersonal -> {
-                                            log.info("QUANTITY_3{}", acquisition3.getCustomerHolder().size());
                                             int i = 0;
                                             for (Acquisition acquisition4 : acquisitionsPersonal){
                                                 for (Customer customer : acquisition4.getCustomerHolder()){
                                                     for (Customer customer1 : acquisition3.getCustomerHolder()){
-                                                        log.info("CLIENT_TYPE : {}", customer1.getCustomerType());
-                                                        log.info("CLIENT_TYPE : {}", Objects.equals(customer1.getCustomerType(), "ENTERPRISE"));
                                                         if (customer.getCustomerIdentityNumber().equals(customer1.getCustomerIdentityNumber())
                                                                 && acquisition4.getProduct().getProductName().equals(acquisition3.getProduct().getProductName())
                                                         ) {
@@ -211,8 +204,13 @@ public class AcquisitionHandler {
         return acquisitionDB.zipWith(acquisition, (db, req) -> {
             db.setProduct(req.getProduct());
             db.setDebt(req.getDebt());
+            db.setBill(req.getBill());
             return db;
-        }).flatMap(acquisitionService::update).flatMap(acquisitionResponse -> ServerResponse.created(URI.create("/acquisition/".concat(acquisitionResponse.getId())))
+        })
+                .flatMap(acquisitionUpdate -> {
+                    billService.updateBill(acquisitionUpdate.getBill());
+                    return Mono.just(acquisitionUpdate);
+                }).flatMap(acquisitionService::update).flatMap(acquisitionResponse -> ServerResponse.created(URI.create("/acquisition/".concat(acquisitionResponse.getId())))
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(acquisitionResponse));
     }
