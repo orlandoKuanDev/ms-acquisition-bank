@@ -212,7 +212,7 @@ public class AcquisitionHandler {
             db.setProduct(req.getProduct());
             db.setDebt(req.getDebt());
             return db;
-        }).flatMap(acquisitionResponse -> ServerResponse.created(URI.create("/acquisition/".concat(acquisitionResponse.getId())))
+        }).flatMap(acquisitionService::update).flatMap(acquisitionResponse -> ServerResponse.created(URI.create("/acquisition/".concat(acquisitionResponse.getId())))
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(acquisitionResponse));
     }
