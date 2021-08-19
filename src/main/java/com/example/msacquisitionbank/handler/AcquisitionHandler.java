@@ -14,8 +14,10 @@ import com.example.msacquisitionbank.utils.CreditCardNumberGenerator;
 import com.example.msacquisitionbank.utils.IbanGenerator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Flux;
@@ -23,6 +25,8 @@ import reactor.core.publisher.Mono;
 
 import java.net.URI;
 import java.util.*;
+
+import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 @Component
 @Slf4j(topic = "ACQUISITION_HANDLER")
@@ -116,6 +120,24 @@ public class AcquisitionHandler {
         });
     }
 
+    public Mono<ServerResponse> createBill(ServerRequest request){
+        Mono<Bill> bill = request.bodyToMono(Bill.class);
+        return bill.flatMap(p-> {
+                    return billService.createBill(p);
+                }).flatMap(p -> ServerResponse.created(URI.create("/bill/".concat(p.getAccountNumber())))
+                        .contentType(APPLICATION_JSON)
+                        .bodyValue(p))
+                .onErrorResume(error -> {
+                    WebClientResponseException errorResponse = (WebClientResponseException) error;
+                    if(errorResponse.getStatusCode() == HttpStatus.BAD_REQUEST) {
+                        return ServerResponse.badRequest()
+                                .contentType(APPLICATION_JSON)
+                                .bodyValue(errorResponse.getResponseBodyAsString());
+                    }
+                    return Mono.error(errorResponse);
+                });
+    }
+
     public Mono<ServerResponse> createAcquisitionTest2(ServerRequest request){
         Mono<Acquisition> acquisition = request.bodyToMono(Acquisition.class);
         Acquisition acquisitionInit = new Acquisition();
@@ -186,7 +208,8 @@ public class AcquisitionHandler {
                                         }).switchIfEmpty(Mono.error(new RuntimeException(String.format("The client type personal has the %s account product", acquisition3.getProduct().getProductName()))));
                             }
                             return Mono.just(acquisition3);
-                        }).flatMap(acquisitionBill -> {
+                        })
+                        .flatMap(acquisitionBill -> {
                             if (acquisitionBill.getInitial() < 0){
                                 return Mono.empty();
                             }
@@ -195,7 +218,9 @@ public class AcquisitionHandler {
                             bill.setAcquisition(acquisitionBill);
                             bill.setBalance(acquisitionBill.getInitial());
                             return billService.createBill(bill);
-                        }).switchIfEmpty(Mono.error(new RuntimeException("the initial amount must be greater than zero")))
+                        })
+                        .checkpoint("after create bill web-client")
+                        .switchIfEmpty(Mono.error(new RuntimeException("the initial amount must be greater than zero")))
                         .flatMap(bill -> {
                             acquisitionInit.setBill(bill);
                             //acquisitionInit.getBill().setAcquisition(acquisitionInit);
