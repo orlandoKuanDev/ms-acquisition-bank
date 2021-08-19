@@ -8,6 +8,7 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 
 public interface IAcquisitionRepository extends IRepository<Acquisition, String>{
-    Mono<Acquisition> findByCardNumber(String cardNumber);
+    Mono<Acquisition> findByIban(String iban);
+    Mono<Acquisition> findByBill_AccountNumber(String accountNumber);
     Flux<Acquisition> findAllByCustomerHolder(List<Customer> customers);
 }

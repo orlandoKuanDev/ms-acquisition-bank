@@ -11,6 +11,7 @@ import com.example.msacquisitionbank.services.IAcquisitionService;
 import com.example.msacquisitionbank.services.ProductService;
 import com.example.msacquisitionbank.utils.AccountNumberGenerator;
 import com.example.msacquisitionbank.utils.CreditCardNumberGenerator;
+import com.example.msacquisitionbank.utils.IbanGenerator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -52,9 +53,17 @@ public class AcquisitionHandler {
                 .switchIfEmpty(ServerResponse.notFound().build());
     }
 
-    public Mono<ServerResponse> findByCardNumber(ServerRequest request){
-        String cardNumber = request.pathVariable("cardNumber");
-        return acquisitionService.findByCardNumber(cardNumber).flatMap(acquisition -> ServerResponse.ok()
+    public Mono<ServerResponse> findByIban(ServerRequest request){
+        String iban = request.pathVariable("iban");
+        return acquisitionService.findByIban(iban).flatMap(acquisition -> ServerResponse.ok()
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .bodyValue(acquisition))
+                .switchIfEmpty(ServerResponse.notFound().build());
+    }
+
+    public Mono<ServerResponse> findByBillAccountNumber(ServerRequest request){
+        String accountNumber = request.pathVariable("accountNumber");
+        return acquisitionService.findByBill_AccountNumber(accountNumber).flatMap(acquisition -> ServerResponse.ok()
                         .contentType(MediaType.APPLICATION_JSON)
                         .bodyValue(acquisition))
                 .switchIfEmpty(ServerResponse.notFound().build());
@@ -90,7 +99,6 @@ public class AcquisitionHandler {
                     List<Customer> customers = new ArrayList<>();
                     customers.add(customer);
             return acquisitionService.findAllByCustomerHolder(customers).collectList().flatMap(acquisitions -> {
-                //Mono<Bill> billMono = billService.findByCardNumber(acquisitions)
                 averageBalanceDTO.setAcquisitions(acquisitions);
                 int i = 0;
                 double average = 0.0;
@@ -111,6 +119,10 @@ public class AcquisitionHandler {
     public Mono<ServerResponse> createAcquisitionTest2(ServerRequest request){
         Mono<Acquisition> acquisition = request.bodyToMono(Acquisition.class);
         Acquisition acquisitionInit = new Acquisition();
+        AccountNumberGenerator accountNumberGenerator = new AccountNumberGenerator();
+        String accNumber = accountNumberGenerator.generate(15);
+        IbanGenerator ibanGenerator = new IbanGenerator();
+        String ibanByAccount = ibanGenerator.generate(accNumber);
         return acquisition.flatMap(acquisition1 -> productService.findByProductName(acquisition1.getProduct().getProductName())
                         .flatMap(product -> {
                             acquisitionInit.setProduct(product);
@@ -118,10 +130,9 @@ public class AcquisitionHandler {
                         }).flatMap(acquisition2 -> Flux.fromIterable(acquisition2.getCustomerHolder())
                         .flatMap(customer -> customerService.findByIdentityNumber(customer.getCustomerIdentityNumber()))
                         .collectList()).flatMap(customers -> {
-                            CreditCardNumberGenerator creditCardNumberGenerator = new CreditCardNumberGenerator();
                             acquisitionInit.setCustomerHolder(customers);
                             acquisitionInit.setInitial(acquisition1.getInitial());
-                            acquisitionInit.setCardNumber(creditCardNumberGenerator.generate("4551", 17));
+                            acquisitionInit.setIban(ibanByAccount);
                             acquisitionInit.setCustomerAuthorizedSigner(new ArrayList<>());
                             return Mono.just(acquisitionInit);
                         })
@@ -180,14 +191,14 @@ public class AcquisitionHandler {
                                 return Mono.empty();
                             }
                             Bill bill = new Bill();
-                            AccountNumberGenerator accountNumberGenerator = new AccountNumberGenerator();
-                            bill.setAccountNumber(accountNumberGenerator.generate(15));
+                            bill.setAccountNumber(accNumber);
                             bill.setAcquisition(acquisitionBill);
                             bill.setBalance(acquisitionBill.getInitial());
                             return billService.createBill(bill);
                         }).switchIfEmpty(Mono.error(new RuntimeException("the initial amount must be greater than zero")))
                         .flatMap(bill -> {
                             acquisitionInit.setBill(bill);
+                            //acquisitionInit.getBill().setAcquisition(acquisitionInit);
                             return acquisitionService.create(acquisitionInit);
                         }))
                 .flatMap(response -> ServerResponse.ok()
@@ -197,7 +208,7 @@ public class AcquisitionHandler {
 
     public Mono<ServerResponse> updateAcquisition(ServerRequest request){
         Mono<Acquisition> acquisition = request.bodyToMono(Acquisition.class);
-        return acquisition.flatMap(acquisitionEdit -> acquisitionService.findByCardNumber(acquisitionEdit.getCardNumber()).flatMap(currentAcquisition -> {
+        return acquisition.flatMap(acquisitionEdit -> acquisitionService.findByIban(acquisitionEdit.getIban()).flatMap(currentAcquisition -> {
             currentAcquisition.setProduct(acquisitionEdit.getProduct());
             currentAcquisition.setBill(acquisitionEdit.getBill());
             return acquisitionService.update(currentAcquisition);
@@ -208,11 +219,10 @@ public class AcquisitionHandler {
 
     public Mono<ServerResponse> update(ServerRequest request){
         Mono<Acquisition> acquisition = request.bodyToMono(Acquisition.class);
-        String cardNumber = request.pathVariable("cardNumber");
-        Mono<Acquisition> acquisitionDB = acquisitionService.findByCardNumber(cardNumber);
+        String iban = request.pathVariable("iban");
+        Mono<Acquisition> acquisitionDB = acquisitionService.findByIban(iban);
         return acquisitionDB.zipWith(acquisition, (db, req) -> {
             db.setProduct(req.getProduct());
-            db.setDebt(req.getDebt());
             db.setBill(req.getBill());
             return db;
         })

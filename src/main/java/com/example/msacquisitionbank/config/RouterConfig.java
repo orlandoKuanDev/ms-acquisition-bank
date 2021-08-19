@@ -19,9 +19,10 @@ public class RouterConfig {
                 .andRoute(GET("/acquisition/productId/{productId}"), handler::findByProductId)
                 .andRoute(GET("/acquisition/customer/{identityNumber}"), handler::findByIdentityNumber)
                 .andRoute(GET("/acquisition/all/{identityNumber}"), handler::findAllByCustomer)
-                .andRoute(GET("/acquisition/card/{cardNumber}"), handler::findByCardNumber)
+                .andRoute(GET("/acquisition/card/{iban}"), handler::findByIban)
+                .andRoute(GET("/acquisition/bill/{accountNumber}"), handler::findByBillAccountNumber)
                 .andRoute(POST("/acquisition/create"), handler::createAcquisitionTest2)
                 .andRoute(POST("/acquisition/update"), handler::updateAcquisition)
-                .andRoute(PUT("/acquisition/update/{cardNumber}"), handler::update);
+                .andRoute(PUT("/acquisition/update/{iban}"), handler::update);
     }
 }

@@ -36,8 +36,13 @@ public class AcquisitionService extends BaseService<Acquisition, String> impleme
     }
 
     @Override
-    public Mono<Acquisition> findByCardNumber(String cardNumber) {
-        return acquisitionRepository.findByCardNumber(cardNumber);
+    public Mono<Acquisition> findByBill_AccountNumber(String accountNumber) {
+        return acquisitionRepository.findByBill_AccountNumber(accountNumber);
+    }
+
+    @Override
+    public Mono<Acquisition> findByIban(String iban) {
+        return acquisitionRepository.findByIban(iban);
     }
 
     @Override

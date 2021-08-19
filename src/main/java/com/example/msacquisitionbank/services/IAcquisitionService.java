@@ -9,6 +9,7 @@ import java.util.List;
 
 public interface IAcquisitionService extends IBaseService<Acquisition, String>{
     Mono<List<Acquisition>> findByCustomerIdentityNumber(String identityNumber);
-    Mono<Acquisition> findByCardNumber(String cardNumber);
+    Mono<Acquisition> findByBill_AccountNumber(String accountNumber);
+    Mono<Acquisition> findByIban(String iban);
     Flux<Acquisition> findAllByCustomerHolder(List<Customer> customers);
 }
