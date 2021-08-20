@@ -1,16 +1,9 @@
 package com.example.msacquisitionbank.handler;
 
 import com.example.msacquisitionbank.models.dto.AverageBalanceDTO;
-import com.example.msacquisitionbank.models.entities.Acquisition;
-import com.example.msacquisitionbank.models.entities.Bill;
-import com.example.msacquisitionbank.models.entities.Customer;
-import com.example.msacquisitionbank.models.entities.Product;
-import com.example.msacquisitionbank.services.BillService;
-import com.example.msacquisitionbank.services.CustomerService;
-import com.example.msacquisitionbank.services.IAcquisitionService;
-import com.example.msacquisitionbank.services.ProductService;
+import com.example.msacquisitionbank.models.entities.*;
+import com.example.msacquisitionbank.services.*;
 import com.example.msacquisitionbank.utils.AccountNumberGenerator;
-import com.example.msacquisitionbank.utils.CreditCardNumberGenerator;
 import com.example.msacquisitionbank.utils.IbanGenerator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,12 +29,15 @@ public class AcquisitionHandler {
     private final BillService billService;
     private final ProductService productService;
     private final CustomerService customerService;
+    private final PaymentService paymentService;
+
     @Autowired
-    public AcquisitionHandler(IAcquisitionService acquisitionService, BillService billService, ProductService productService, CustomerService customerService) {
+    public AcquisitionHandler(IAcquisitionService acquisitionService, BillService billService, ProductService productService, CustomerService customerService, PaymentService paymentService) {
         this.acquisitionService = acquisitionService;
         this.billService = billService;
         this.productService = productService;
         this.customerService = customerService;
+        this.paymentService = paymentService;
     }
 
     public Mono<ServerResponse> findAll(ServerRequest request){
@@ -156,6 +152,15 @@ public class AcquisitionHandler {
                             acquisitionInit.setInitial(acquisition1.getInitial());
                             acquisitionInit.setIban(ibanByAccount);
                             acquisitionInit.setCustomerAuthorizedSigner(new ArrayList<>());
+                            if (Objects.equals(acquisition1.getProduct().getProductName(), "TARJETA DE CREDITO")){
+                                return paymentService.createPayment(Payment.builder()
+                                        .acquisition(acquisitionInit)
+                                        .creditLine(acquisitionInit.getInitial())
+                                        .amount(acquisitionInit.getInitial())
+                                        .description("Credit card payment")
+                                        .haveDebt(false)
+                                        .build()).flatMap(acq -> Mono.just(acq.getAcquisition()));
+                            }
                             return Mono.just(acquisitionInit);
                         })
                         .flatMap(acquisition3 -> {
@@ -165,11 +170,8 @@ public class AcquisitionHandler {
                             long quantityPersonalHolder = acquisition3.getCustomerHolder()
                                     .stream().filter(ce -> ce.getCustomerType().equals("PERSONAL")).count();
                             boolean isEnterprise=false;
-                            boolean isPersonal=false;
                             isEnterprise = quantityEnterpriseHolder==quantityHolder&&quantityPersonalHolder==0;
-                            isPersonal = quantityPersonalHolder==quantityHolder&&quantityEnterpriseHolder==0;
-                            log.info("CLIENT_TYPE {}", isEnterprise);
-                            log.info("CLIENT_TYPE {}", isPersonal);
+
                             if (isEnterprise){
                                 if (acquisition3.getProduct().getProductName().equals("PLAZO FIJO")
                                 || acquisition3.getProduct().getProductName().equals("AHORRO")){
@@ -193,11 +195,12 @@ public class AcquisitionHandler {
                                                     }
                                                 }
                                             }
-                                           log.info("EXIST_CREDIT_CARD, {}", acquisitionsPersonal.stream().filter(acquisition2 -> Objects.equals(acquisition2.getProduct().getProductName(), "TARJETA DE CREDITO")).count());
+
                                             if (i > 0){
                                                 return Mono.empty();
                                             }
-                                            long existCreditCard= acquisitionsPersonal.stream()
+
+                                            long existCreditCard = acquisitionsPersonal.stream()
                                                     .filter(acquisition2 -> acquisition2.getCustomerHolder().equals(acquisition3.getCustomerHolder()))
                                                     .filter(acquisition2 -> Objects.equals(acquisition2.getProduct().getProductName(), "TARJETA DE CREDITO")).count();
                                             if (existCreditCard == 0 && (acquisition3.getProduct().getProductName().equals("CUENTA AHORRO VIP")
@@ -209,6 +212,8 @@ public class AcquisitionHandler {
                             }
                             return Mono.just(acquisition3);
                         })
+                        //.doOnNext()
+                        .checkpoint("after validation business rules for creation")
                         .flatMap(acquisitionBill -> {
                             if (acquisitionBill.getInitial() < 0){
                                 return Mono.empty();
@@ -223,9 +228,9 @@ public class AcquisitionHandler {
                         .switchIfEmpty(Mono.error(new RuntimeException("the initial amount must be greater than zero")))
                         .flatMap(bill -> {
                             acquisitionInit.setBill(bill);
-                            //acquisitionInit.getBill().setAcquisition(acquisitionInit);
                             return acquisitionService.create(acquisitionInit);
                         }))
+                .switchIfEmpty(Mono.error(new RuntimeException("the acquisition cannot be empty")))
                 .flatMap(response -> ServerResponse.ok()
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(response));
