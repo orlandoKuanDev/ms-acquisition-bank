@@ -17,6 +17,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.net.URI;
+import java.time.LocalDateTime;
 import java.util.*;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -158,7 +159,7 @@ public class AcquisitionHandler {
                                         .creditLine(acquisitionInit.getInitial())
                                         .amount(acquisitionInit.getInitial())
                                         .description("Credit card payment")
-                                        .haveDebt(false)
+                                        .expirationDate(LocalDateTime.now().plusDays(30))
                                         .build()).flatMap(acq -> Mono.just(acq.getAcquisition()));
                             }
                             return Mono.just(acquisitionInit);

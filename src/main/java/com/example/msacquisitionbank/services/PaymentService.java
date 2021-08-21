@@ -45,8 +45,6 @@ public class PaymentService {
                 .bodyToMono(Payment.class);
     }
 
-
-
     public static void logTraceResponse(Logger log, ClientResponse response) {
         if (log.isTraceEnabled()) {
             log.trace("Response status: {}", response.statusCode());
