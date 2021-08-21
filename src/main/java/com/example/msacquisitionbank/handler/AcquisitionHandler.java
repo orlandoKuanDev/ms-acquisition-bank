@@ -31,14 +31,15 @@ public class AcquisitionHandler {
     private final ProductService productService;
     private final CustomerService customerService;
     private final PaymentService paymentService;
-
+    private final TransactionService transactionService;
     @Autowired
-    public AcquisitionHandler(IAcquisitionService acquisitionService, BillService billService, ProductService productService, CustomerService customerService, PaymentService paymentService) {
+    public AcquisitionHandler(IAcquisitionService acquisitionService, BillService billService, ProductService productService, CustomerService customerService, PaymentService paymentService, TransactionService transactionService) {
         this.acquisitionService = acquisitionService;
         this.billService = billService;
         this.productService = productService;
         this.customerService = customerService;
         this.paymentService = paymentService;
+        this.transactionService = transactionService;
     }
 
     public Mono<ServerResponse> findAll(ServerRequest request){
@@ -93,6 +94,16 @@ public class AcquisitionHandler {
                         .bodyValue(p))
                 .switchIfEmpty(Mono.error(new RuntimeException("THE PRODUCT DOES NOT EXIST")));
     }
+
+    public Mono<ServerResponse> transactionAverage(ServerRequest request){
+        String month = request.pathVariable("month");
+        String accountNumber = request.pathVariable("accountNumber");
+        return transactionService.transactionAverage(month, accountNumber).flatMap(p -> ServerResponse.ok()
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .bodyValue(p))
+                .switchIfEmpty(Mono.error(new RuntimeException("THE TRANSACTION AVERAGE REPORT DOES NOT EXIST")));
+    }
+
     public Mono<ServerResponse> findAllByCustomer(ServerRequest request){
         String identityNumber = request.pathVariable("identityNumber");
         AverageBalanceDTO averageBalanceDTO = new AverageBalanceDTO();
