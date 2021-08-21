@@ -10,6 +10,4 @@ import java.util.List;
 public class AverageDTO {
     private List<Double> balances;
     private Double average;
-    private String productName;
-    private String customerIdentityType;
 }

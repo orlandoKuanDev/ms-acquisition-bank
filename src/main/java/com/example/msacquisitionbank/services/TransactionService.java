@@ -16,6 +16,8 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
@@ -31,11 +33,14 @@ public class TransactionService {
     }
 
     public Mono<AverageDTO> transactionAverage(String month, String accountNumber) {
+        Map<String,String> params = new HashMap<>();
+        params.put("month", month);
+        params.put("accountNumber", accountNumber);
         return webClientBuilder
                 .baseUrl("http://SERVICE-TRANSACTION/transaction")
                 .build()
                 .get()
-                .uri("/average/{month}/{accountNumber}", Collections.singletonMap("month", month), Collections.singletonMap("accountNumber", accountNumber))
+                .uri("/average2/{month}/{accountNumber}", params)
                 .accept(APPLICATION_JSON)
                 .retrieve()
                 .onStatus(HttpStatus::isError, response -> {

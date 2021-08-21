@@ -9,6 +9,5 @@ import java.util.List;
 
 @Data
 public class AverageBalanceDTO {
-    private Double average;
-    private List<Acquisition> acquisitions;
+    private List<AverageDTO> average;
 }

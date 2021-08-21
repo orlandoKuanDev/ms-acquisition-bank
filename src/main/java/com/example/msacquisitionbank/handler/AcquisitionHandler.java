@@ -1,6 +1,7 @@
 package com.example.msacquisitionbank.handler;
 
 import com.example.msacquisitionbank.models.dto.AverageBalanceDTO;
+import com.example.msacquisitionbank.models.dto.AverageDTO;
 import com.example.msacquisitionbank.models.entities.*;
 import com.example.msacquisitionbank.services.*;
 import com.example.msacquisitionbank.utils.AccountNumberGenerator;
@@ -19,6 +20,7 @@ import reactor.core.publisher.Mono;
 import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
@@ -104,28 +106,35 @@ public class AcquisitionHandler {
                 .switchIfEmpty(Mono.error(new RuntimeException("THE TRANSACTION AVERAGE REPORT DOES NOT EXIST")));
     }
 
-    public Mono<ServerResponse> findAllByCustomer(ServerRequest request){
+    public Mono<ServerResponse> findAllByCustomer(ServerRequest request) {
         String identityNumber = request.pathVariable("identityNumber");
-        AverageBalanceDTO averageBalanceDTO = new AverageBalanceDTO();
-        return customerService.findByIdentityNumber(identityNumber).flatMap(customer -> {
-                    List<Customer> customers = new ArrayList<>();
-                    customers.add(customer);
-            return acquisitionService.findAllByCustomerHolder(customers).collectList().flatMap(acquisitions -> {
-                averageBalanceDTO.setAcquisitions(acquisitions);
-                int i = 0;
-                double average = 0.0;
-                //List<Bill> bills = new ArrayList<>();
-                for (Acquisition acquisition : acquisitions){
-                    average += acquisition.getBill().getBalance();
-                    i++;
+        Mono<AverageBalanceDTO> averageDTO = Mono.just(new AverageBalanceDTO());
 
-                }
-                averageBalanceDTO.setAverage(average / i);
-                return Mono.just(averageBalanceDTO);
-            }).flatMap(p -> ServerResponse.ok()
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .bodyValue(p));
-        });
+        Mono<List<Acquisition>> acquisitionFlux = customerService.findByIdentityNumber(identityNumber).flatMapMany(customer -> {
+            List<Customer> customers = new ArrayList<>();
+            customers.add(customer);
+            return acquisitionService.findAllByCustomerHolder(customers);
+        }).collectList();
+
+        log.info("transact -> {}", acquisitionFlux);
+
+        Mono<List<AverageDTO>> averageDTOMono = acquisitionFlux.flatMapMany(acquisition -> Flux.fromIterable(acquisition).flatMapSequential(acquisition1 -> {
+            log.info("transact -> {}", transactionService.transactionAverage("8", acquisition1.getBill().getAccountNumber()));
+            return transactionService.transactionAverage("8", acquisition1.getBill().getAccountNumber());
+        })).collectList();
+
+        return Flux.zip(averageDTO, averageDTOMono)
+                .flatMapSequential(result -> {
+                    log.info("AVERAGES. {}", result.getT2());
+                    List<AverageDTO> averageDTO1 = new ArrayList<>(result.getT2());
+                    result.getT1().setAverage(averageDTO1);
+                    return Flux.just(result.getT1());
+                })
+                .log()
+                .collectList()
+                .flatMap(p -> ServerResponse.ok()
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .bodyValue(p));
     }
 
     public Mono<ServerResponse> createBill(ServerRequest request){
