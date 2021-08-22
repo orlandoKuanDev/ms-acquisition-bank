@@ -117,7 +117,6 @@ public class AcquisitionHandler {
         }).collectList();
 
         Mono<List<AverageDTO>> averageDTOMono = acquisitionFlux.flatMapMany(acquisition -> Flux.fromIterable(acquisition).flatMapSequential(acquisition1 -> {
-            log.info("transact -> {}", transactionService.transactionAverage("8", acquisition1.getBill().getAccountNumber()));
             return transactionService.transactionAverage("8", acquisition1.getBill().getAccountNumber());
         })).collectList();
 
