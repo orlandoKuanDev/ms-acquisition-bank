@@ -34,6 +34,9 @@ public class Acquisition {
     @Field(name = "iban")
     private String iban;
 
+    @Field(name = "cardNumber")
+    private String cardNumber;
+
     @Field(name = "bill")
     private Bill bill;
 

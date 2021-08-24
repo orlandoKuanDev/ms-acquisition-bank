@@ -168,6 +168,7 @@ public class AcquisitionHandler {
                             acquisitionInit.setCustomerHolder(customers);
                             acquisitionInit.setInitial(acquisition1.getInitial());
                             acquisitionInit.setIban(ibanByAccount);
+                            acquisitionInit.setCardNumber("");
                             acquisitionInit.setCustomerAuthorizedSigner(new ArrayList<>());
                             if (Objects.equals(acquisition1.getProduct().getProductName(), "TARJETA DE CREDITO")){
                                 return paymentService.createPayment(Payment.builder()
