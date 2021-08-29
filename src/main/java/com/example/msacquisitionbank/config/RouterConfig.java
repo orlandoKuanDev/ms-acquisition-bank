@@ -24,7 +24,7 @@ public class RouterConfig {
                 .andRoute(GET("/acquisition/bills/{accountNumber}"), handler::findByBillAccountNumber)
                 .andRoute(GET("/acquisition/transaction/average/{month}/{accountNumber}"), handler::transactionAverage)
                 .andRoute(POST("/acquisition/bill/"), handler::createBill)
-                .andRoute(POST("/acquisition/create"), handler::createAcquisitionTest2)
+                .andRoute(POST("/acquisition/create"), handler::create)
                 .andRoute(POST("/acquisition/update"), handler::updateAcquisition)
                 .andRoute(PUT("/acquisition/update/{iban}"), handler::update);
     }
