@@ -1,6 +1,7 @@
 package com.example.msacquisitionbank.models.entities;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
@@ -13,7 +14,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@Document(collection = "acquisition")
+@JsonIgnoreProperties(ignoreUnknown = true)
+//@Document(collection = "acquisition")
 @Data
 public class Acquisition {
     @Id
