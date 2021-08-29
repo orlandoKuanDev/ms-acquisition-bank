@@ -29,6 +29,7 @@ public class AcquisitionConsumer {
         log.info("data from kafka listener (acquisition) =>"+data);
         Acquisition acquisition= objectMapper.readValue(data, Acquisition.class );
         return Mono.just(acquisition).as(acquisitionHandler::createAcquisition)
+                .log()
                 .subscribe();
     }
 }
