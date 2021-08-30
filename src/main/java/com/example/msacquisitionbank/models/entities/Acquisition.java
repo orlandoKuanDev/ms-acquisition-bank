@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonIgnoreProperties(ignoreUnknown = true)
+//@JsonIgnoreProperties(ignoreUnknown = true)
 //@Document(collection = "acquisition")
 @Data
 public class Acquisition {

@@ -5,6 +5,7 @@ import com.example.msacquisitionbank.models.dto.AverageDTO;
 import com.example.msacquisitionbank.models.entities.*;
 import com.example.msacquisitionbank.services.*;
 import com.example.msacquisitionbank.utils.AccountNumberGenerator;
+import com.example.msacquisitionbank.utils.CreditCardNumberGenerator;
 import com.example.msacquisitionbank.utils.IbanGenerator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -171,15 +172,6 @@ public class AcquisitionHandler {
                     acquisitionInit.setIban(ibanByAccount);
                     acquisitionInit.setCardNumber("");
                     acquisitionInit.setCustomerAuthorizedSigner(new ArrayList<>());
-                    if (Objects.equals(acquisition1.getProduct().getProductName(), "TARJETA DE CREDITO")){
-                        return paymentService.createPayment(Payment.builder()
-                                .acquisition(acquisitionInit)
-                                .creditLine(acquisitionInit.getInitial())
-                                .amount(acquisitionInit.getInitial())
-                                .description("Credit card payment")
-                                .expirationDate(LocalDateTime.now().plusDays(30))
-                                .build()).flatMap(acq -> Mono.just(acq.getAcquisition()));
-                    }
                     return Mono.just(acquisitionInit);
                 })
                 .flatMap(acquisition3 -> {
@@ -231,9 +223,8 @@ public class AcquisitionHandler {
                     }
                     return Mono.just(acquisition3);
                 })
-                //.doOnNext()
                 .checkpoint("after validation business rules for creation")
-                .flatMap(acquisitionBill -> {
+                .zipWhen(acquisitionBill -> {
                     if (acquisitionBill.getInitial() < 0){
                         return Mono.empty();
                     }
@@ -243,13 +234,42 @@ public class AcquisitionHandler {
                     bill.setBalance(acquisitionBill.getInitial());
                     return billService.createBill(bill);
                 })
+                        .zipWhen(data -> {
+                    if (Objects.equals(data.getT1().getProduct().getProductName(), "TARJETA DE CREDITO")){
+                        CreditCardNumberGenerator creditCardNumberGenerator = new CreditCardNumberGenerator();
+                        data.getT1().setCardNumber(creditCardNumberGenerator.generate("4551", 15));
+                        data.getT1().setBill(data.getT2());
+                        return paymentService.createPayment(Payment.builder()
+                                .acquisition(data.getT1())
+                                .creditLine(data.getT1().getInitial())
+                                .amount(data.getT1().getInitial())
+                                .description("Credit card payment")
+                                .expirationDate(LocalDateTime.now().plusDays(30))
+                                .build());
+                    }else {
+                        return Mono.just(data.getT1());
+                    }
+                })
                 .checkpoint("after create bill web-client")
                 .switchIfEmpty(Mono.error(new RuntimeException("the initial amount must be greater than zero")))
                 .flatMap(bill -> {
-                    acquisitionInit.setBill(bill);
+                    acquisitionInit.setBill(bill.getT1().getT2());
                     return acquisitionService.create(acquisitionInit);
                 }));
     }
+     /*log.info("PRODUCT_DTO, {}", acquisition3);
+                    if (Objects.equals(acquisition3.getProduct().getProductName(), "TARJETA DE CREDITO")){
+        CreditCardNumberGenerator creditCardNumberGenerator = new CreditCardNumberGenerator();
+        acquisition3.setCardNumber(creditCardNumberGenerator.generate("4551", 15));
+        return paymentService.createPayment(Payment.builder()
+                        .acquisition(acquisition3)
+                        .creditLine(acquisition3.getInitial())
+                        .amount(acquisition3.getInitial())
+                        .description("Credit card payment")
+                        .expirationDate(LocalDateTime.now().plusDays(30))
+                        .build())
+                .flatMap(acq -> Mono.just(acq.getAcquisition()));
+    }*/
     public Mono<ServerResponse> create(ServerRequest request){
         Mono<Acquisition> acquisition = request.bodyToMono(Acquisition.class);
         return acquisition
