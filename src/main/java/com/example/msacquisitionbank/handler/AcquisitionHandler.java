@@ -107,6 +107,19 @@ public class AcquisitionHandler {
                 .switchIfEmpty(Mono.error(new RuntimeException("THE TRANSACTION AVERAGE REPORT DOES NOT EXIST")));
     }
 
+    public Mono<ServerResponse> findAcquisitionsByIdentity(ServerRequest request) {
+        String identityNumber = request.pathVariable("identityNumber");
+        Mono<List<Acquisition>> acquisitions = customerService.findByIdentityNumber(identityNumber).flatMapMany(customer -> {
+            List<Customer> customers = new ArrayList<>();
+            customers.add(customer);
+            return acquisitionService.findAllByCustomerHolder(customers);
+        }).collectList();
+        return acquisitions
+                .flatMap(p -> ServerResponse.ok()
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .bodyValue(p))
+                .switchIfEmpty(Mono.error(new RuntimeException("THE ACQUISITIONS DOES NOT EXIST")));
+    }
     public Mono<ServerResponse> findAllByCustomer(ServerRequest request) {
         String identityNumber = request.pathVariable("identityNumber");
         Mono<AverageBalanceDTO> averageDTO = Mono.just(new AverageBalanceDTO());
