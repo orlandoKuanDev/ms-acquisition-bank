@@ -402,6 +402,7 @@ public class AcquisitionHandler {
         return acquisition.flatMap(acquisitionEdit -> acquisitionService.findByIban(acquisitionEdit.getIban()).flatMap(currentAcquisition -> {
             currentAcquisition.setProduct(acquisitionEdit.getProduct());
             currentAcquisition.setBill(acquisitionEdit.getBill());
+            currentAcquisition.setCardNumber(acquisitionEdit.getCardNumber());
             return acquisitionService.update(currentAcquisition);
         })).flatMap(acquisitionResponse -> ServerResponse.created(URI.create("/api/acquisition/".concat(acquisitionResponse.getId())))
                 .contentType(MediaType.APPLICATION_JSON)
